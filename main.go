@@ -6,8 +6,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"reflect"
-	// 	"net/http/httputil"
+	// 	"reflect"
 )
 
 const (
@@ -23,7 +22,7 @@ type sHeader struct {
 }
 
 type sUser struct {
-	ID    string `json:"id"`
+	ID    int    `json:"id"`
 	Login string `json:"login"`
 	URL   string `json:"url"`
 	Type  string `json:"type"`
@@ -42,10 +41,10 @@ type sComment struct {
 }
 
 type sReview struct {
-	URL         string       `json:"url"`
-	State       string       `json:"state"`
-	User        sUser        `json:"user"`
-	PullRequest sPullRequest `json:"pull_request"`
+	URL            string `json:"url"`
+	State          string `json:"state"`
+	User           sUser  `json:"user"`
+	PullRequestURL string `json:"pull_request_url"`
 }
 
 type sRepo struct {
@@ -53,10 +52,11 @@ type sRepo struct {
 }
 
 type sPayload struct {
-	Action  string   `json:"action"`
-	Review  sReview  `json:"review"`
-	Comment sComment `json:"comment"`
-	Repo    sRepo    `json:"repository"`
+	Action      string       `json:"action"`
+	Review      sReview      `json:"review"`
+	Comment     sComment     `json:"comment"`
+	Repo        sRepo        `json:"repository"`
+	PullRequest sPullRequest `json:"pull_request"`
 }
 
 func dumpRequestInfo(r *http.Request) {
@@ -97,9 +97,6 @@ func getRequestFormData(w http.ResponseWriter, r *http.Request) sPayload {
 
 	var payloadData sPayload
 	payload := r.Form.Get("payload")
-	fmt.Println("payload value : " + reflect.ValueOf(payload).String())
-	fmt.Println("payload : valueOf().Type() " + reflect.ValueOf(payload).Type().String())
-	fmt.Println("payload : TypeOf " + reflect.TypeOf(payload).String())
 
 	if err := json.Unmarshal([]byte(payload), &payloadData); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -150,6 +147,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 						fmt.Println("state == approved")
 					case "commented":
 						fmt.Println("state == commented")
+						handleSubmittedApprovedState(state, data)
 					case "request_changes":
 						fmt.Println("state == request_changes")
 					}
@@ -168,6 +166,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// 	handleSubmittedApprovedState("", sPayload{})
 	http.HandleFunc("/", root)
 	fmt.Println("start listening on port : " + cPort)
 	if err := http.ListenAndServe(":"+cPort, nil); err != nil {
