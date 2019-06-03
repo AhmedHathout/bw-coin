@@ -1,13 +1,9 @@
 package main
 
 import (
-	// 	"encoding/json"
 	"fmt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	// 	"io/ioutil"
-	// 	"net/http"
-	// 	"os"
 )
 
 type sUserDB struct {
@@ -26,6 +22,8 @@ type sRecord struct {
 
 const (
 	cDBName          = "bw-coin"
+	cDBUsername      = "elhmn"
+	cDBPassword      = "mongobeti" //Later fetch password using os.Getenv()
 	cInitialCoins    = 5
 	cCoinsForComment = 1
 )
@@ -66,7 +64,13 @@ func addNewCommentRecord(session *mgo.Session, data sPayload) {
 }
 
 func handleSubmittedApprovedState(state string, data sPayload) {
-	session, err := mgo.Dial("localhost")
+	mongoDBDialInfo := &mgo.DialInfo{
+		Addrs:    []string{"localhost"},
+		Database: cDBName,
+		Username: cDBUsername,
+		Password: cDBPassword,
+	}
+	session, err := mgo.DialWithInfo(mongoDBDialInfo)
 	if err != nil {
 		panic(err)
 	}
@@ -107,5 +111,5 @@ func handleSubmittedApprovedState(state string, data sPayload) {
 		}
 	}
 
-	dumpPayload(data) // Debug
+	// 	dumpPayload(data) // Debug
 }
