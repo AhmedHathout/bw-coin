@@ -121,6 +121,8 @@ func root(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(str)
 	case "application/x-www-form-urlencoded":
 		data := getRequestFormData(w, r)
+		// 		dumpFormData(data) // Debug
+		// 		dumpPayload(data) // Debug
 		//handle request
 		{
 			if headerData.event == "pull_request_review" {
@@ -131,11 +133,13 @@ func root(w http.ResponseWriter, r *http.Request) {
 					switch state {
 					case "approved":
 						fmt.Println("state == approved")
+						handleSubmittedApprovedState(state, data)
 					case "commented":
 						fmt.Println("state == commented")
-						handleSubmittedApprovedState(state, data)
-					case "request_changes":
-						fmt.Println("state == request_changes")
+						handleSubmittedCommentedState(state, data)
+					case "changes_requested":
+						fmt.Println("state == changes_requested")
+						handleSubmittedChangesState(state, data)
 					}
 					fmt.Println("submitted")
 				}

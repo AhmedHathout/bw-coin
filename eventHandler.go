@@ -21,22 +21,62 @@ type sRecord struct {
 }
 
 const (
-	cDBName          = "bw-coin"
-	cDBUsername      = "elhmn"
-	cDBPassword      = "mongobeti" //Later fetch password using os.Getenv()
-	cInitialCoins    = 5
-	cCoinsForComment = 1
+	cDBName           = "bw-coin"
+	cDBUsername       = "elhmn"
+	cDBPassword       = "mongobeti" //Later fetch password using os.Getenv()
+	cInitialCoins     = 5
+	cCoinsForComment  = 1
+	cCoinsForApproval = 2
+	cCoinsForChanges  = 1
+	cMaxCoinsPerPR    = 2
 )
 
-func hasOtherCommentRecords(session *mgo.Session, data sPayload) bool {
-	recordsCollection := session.DB(cDBName).C("records")
+const (
+	eRecordCommented = "commented"
+	eRecordApproved  = "approved"
+	eRecordChanges   = "changes_requested"
+)
 
-	var record []sRecord
-	if err := recordsCollection.Find(bson.M{"type": "comment",
-		"userlogin": data.Review.User.Login, "prurl": data.PullRequest.URL}).All(&record); err != nil {
+func typeToCoins(recordType string) int {
+	coins := 0
+
+	switch recordType {
+	case eRecordApproved:
+		coins = cCoinsForApproval
+	case eRecordCommented:
+		coins = cCoinsForComment
+	case eRecordChanges:
+		coins = cCoinsForChanges
+	}
+	return coins
+}
+
+//Total coins a user collected on a PR
+func totalCoinsPerPR(session *mgo.Session, data sPayload) int {
+	recordsCollection := session.DB(cDBName).C("records")
+	coins := 0
+
+	var records []sRecord
+	if err := recordsCollection.Find(bson.M{"userlogin": data.Review.User.Login,
+		"prurl": data.PullRequest.URL}).All(&records); err != nil {
 		panic(err)
 	}
-	if record == nil || len(record) <= 0 {
+	for _, e := range records {
+		coins += typeToCoins(e.Type)
+	}
+	return coins
+}
+
+func hasOtherRecords(session *mgo.Session, data sPayload, recordType string) bool {
+	recordsCollection := session.DB(cDBName).C("records")
+
+	var records []sRecord
+	if err := recordsCollection.Find(bson.M{"type": recordType,
+		"userlogin": data.Review.User.Login,
+		"prurl":     data.PullRequest.URL}).All(&records); err != nil {
+		panic(err)
+	}
+	if records == nil || len(records) <= 0 {
 		return false
 	}
 	return true
@@ -52,17 +92,17 @@ func dumpPayload(data sPayload) {
 	fmt.Println("User url:", data.Review.User.URL)
 }
 
-func addNewCommentRecord(session *mgo.Session, data sPayload) {
+func addNewRecord(session *mgo.Session, data sPayload, recordType string) {
 	recordsCollection := session.DB(cDBName).C("records")
 
-	if err := recordsCollection.Insert(sRecord{"comment",
+	if err := recordsCollection.Insert(sRecord{recordType,
 		data.Review.User.Login, data.PullRequest.URL}); err != nil {
 		panic(err)
 	}
-	fmt.Println("Comment record successfully created...")
+	fmt.Println("Record :", recordType, " : successfully created...")
 }
 
-func handleSubmittedApprovedState(state string, data sPayload) {
+func createDatabase() *mgo.Session {
 	mongoDBDialInfo := &mgo.DialInfo{
 		Addrs:    []string{"localhost"},
 		Database: cDBName,
@@ -73,42 +113,93 @@ func handleSubmittedApprovedState(state string, data sPayload) {
 	if err != nil {
 		panic(err)
 	}
-	defer session.Close()
 
 	// Optional. Switch the session to a monotonic behavior.
 	session.SetMode(mgo.Monotonic, true)
-	usersCollection := session.DB(cDBName).C("users")
+	return session
+}
 
-	// Create user
-	{
-		// Check if user already exist
-		var userField []sUserDB
-		if err := usersCollection.Find(bson.M{"login": data.Review.User.Login}).All(&userField); err != nil {
+// Create user
+func createUserIfNotExistsYet(usersCollection *mgo.Collection, data sPayload) {
+	// Check if user already exist
+	var userField []sUserDB
+	if err := usersCollection.Find(bson.M{"login": data.Review.User.Login}).All(&userField); err != nil {
+		panic(err)
+	}
+	//Create user
+	if userField == nil || len(userField) <= 0 {
+		if err := usersCollection.Insert(sUserDB{data.Review.User.Login,
+			data.Review.User.URL,
+			data.Review.User.Type,
+			data.Review.User.ID,
+			cInitialCoins}); err != nil {
 			panic(err)
 		}
-		//Create user
-		if userField == nil || len(userField) <= 0 {
-			if err := usersCollection.Insert(sUserDB{data.Review.User.Login,
-				data.Review.User.URL,
-				data.Review.User.Type,
-				data.Review.User.ID,
-				cInitialCoins}); err != nil {
-				panic(err)
-			}
-			fmt.Println("User : [", data.Review.User.Login, "] successfully created...")
+		fmt.Println("User : [", data.Review.User.Login, "] successfully created...")
+	}
+}
+
+func getIncrement(coins int, gain int) int {
+	inc := gain
+	diff := cMaxCoinsPerPR - coins - inc
+	if diff < 0 {
+		if inc = cMaxCoinsPerPR - coins; inc < 0 {
+			inc = 0
 		}
 	}
+	return inc
+}
 
-	//Add coins for comment
-	{
-		if !hasOtherCommentRecords(session, data) {
-			//Add coin for comment
-			usersCollection.Update(bson.M{"login": data.Review.User.Login},
-				bson.M{"$inc": bson.M{"coins": 1}})
-			//Add new comment record
-			addNewCommentRecord(session, data)
-		}
+func handleSubmittedChangesState(state string, data sPayload) {
+	session := createDatabase()
+	usersCollection := session.DB(cDBName).C("users")
+	defer session.Close()
+	createUserIfNotExistsYet(usersCollection, data)
+
+	if !hasOtherRecords(session, data, eRecordChanges) {
+		coins := totalCoinsPerPR(session, data)
+		fmt.Println("totalCoinsPerPR : ", coins)
+
+		usersCollection.Update(bson.M{"login": data.Review.User.Login},
+			bson.M{"$inc": bson.M{"coins": getIncrement(coins, cCoinsForChanges)}})
+		addNewRecord(session, data, eRecordChanges)
 	}
 
-	// 	dumpPayload(data) // Debug
+	dumpPayload(data) // Debug
+}
+
+func handleSubmittedApprovedState(state string, data sPayload) {
+	session := createDatabase()
+	usersCollection := session.DB(cDBName).C("users")
+	defer session.Close()
+	createUserIfNotExistsYet(usersCollection, data)
+
+	if !hasOtherRecords(session, data, eRecordApproved) {
+		coins := totalCoinsPerPR(session, data)
+		fmt.Println("totalCoinsPerPR : ", coins)
+
+		usersCollection.Update(bson.M{"login": data.Review.User.Login},
+			bson.M{"$inc": bson.M{"coins": getIncrement(coins, cCoinsForApproval)}})
+		addNewRecord(session, data, eRecordApproved)
+	}
+
+	dumpPayload(data) // Debug
+}
+
+func handleSubmittedCommentedState(state string, data sPayload) {
+	session := createDatabase()
+	usersCollection := session.DB(cDBName).C("users")
+	defer session.Close()
+	createUserIfNotExistsYet(usersCollection, data)
+
+	if !hasOtherRecords(session, data, eRecordCommented) {
+		coins := totalCoinsPerPR(session, data)
+		fmt.Println("totalCoinsPerPR : ", coins)
+
+		usersCollection.Update(bson.M{"login": data.Review.User.Login},
+			bson.M{"$inc": bson.M{"coins": getIncrement(coins, cCoinsForComment)}})
+		addNewRecord(session, data, eRecordCommented)
+	}
+
+	dumpPayload(data) // Debug
 }
