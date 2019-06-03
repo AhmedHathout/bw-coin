@@ -90,6 +90,8 @@ func dumpPayload(data sPayload) {
 	fmt.Println("User PR URL:", data.PullRequest.URL)
 	fmt.Println("User id:", data.Review.User.ID)
 	fmt.Println("User url:", data.Review.User.URL)
+	fmt.Println("User PR id:", data.PullRequest.User.ID)
+	fmt.Println("User PR url:", data.PullRequest.User.Login)
 }
 
 func addNewRecord(session *mgo.Session, data sPayload, recordType string) {
@@ -156,6 +158,11 @@ func handleSubmittedChangesState(state string, data sPayload) {
 	defer session.Close()
 	createUserIfDoesNotExist(usersCollection, data)
 
+	if data.PullRequest.User.Login == data.Review.User.Login {
+		fmt.Println("Can't handle coins as ", data.PullRequest.User.Login, " owns this PR...")
+		return
+	}
+
 	if !hasOtherRecords(session, data, eRecordChanges) {
 		coins := totalCoinsPerPR(session, data)
 		fmt.Println("totalCoinsPerPR : ", coins)
@@ -174,6 +181,11 @@ func handleSubmittedApprovedState(state string, data sPayload) {
 	defer session.Close()
 	createUserIfDoesNotExist(usersCollection, data)
 
+	if data.PullRequest.User.Login == data.Review.User.Login {
+		fmt.Println("Can't handle coins as ", data.PullRequest.User.Login, " owns this PR...")
+		return
+	}
+
 	if !hasOtherRecords(session, data, eRecordApproved) {
 		coins := totalCoinsPerPR(session, data)
 		fmt.Println("totalCoinsPerPR : ", coins)
@@ -191,6 +203,11 @@ func handleSubmittedCommentedState(state string, data sPayload) {
 	usersCollection := session.DB(cDBName).C("users")
 	defer session.Close()
 	createUserIfDoesNotExist(usersCollection, data)
+
+	if data.PullRequest.User.Login == data.Review.User.Login {
+		fmt.Println("Can't handle coins as ", data.PullRequest.User.Login, " owns this PR...")
+		return
+	}
 
 	if !hasOtherRecords(session, data, eRecordCommented) {
 		coins := totalCoinsPerPR(session, data)

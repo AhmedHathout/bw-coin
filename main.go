@@ -128,6 +128,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 			if headerData.event == "pull_request_review" {
 				switch data.Action {
 				case "submitted":
+					fmt.Println("submitted")
 					state := data.Review.State
 					fmt.Println("state : ", state)
 					switch state {
@@ -141,7 +142,6 @@ func root(w http.ResponseWriter, r *http.Request) {
 						fmt.Println("state == changes_requested")
 						handleSubmittedChangesState(state, data)
 					}
-					fmt.Println("submitted")
 				}
 			}
 		}
