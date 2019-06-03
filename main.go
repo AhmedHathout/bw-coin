@@ -1,12 +1,11 @@
 package main
 
 import (
-	"fmt"
-	// 	"io/ioutil"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	// 	"reflect"
+	"reflect"
 )
 
 const (
@@ -107,9 +106,9 @@ func getRequestFormData(w http.ResponseWriter, r *http.Request) sPayload {
 
 func dumpFormData(data sPayload) {
 	fmt.Println("action: ", data.Action)
-	// 	fmt.Println("review: ", reflect.ValueOf(data.Review).String())
-	// 	fmt.Println("comment: ", reflect.ValueOf(data.Comment).String())
-	// 	fmt.Println("repository: ", reflect.ValueOf(data.Repo).String())
+	fmt.Println("review: ", reflect.ValueOf(data.Review).String())
+	fmt.Println("comment: ", reflect.ValueOf(data.Comment).String())
+	fmt.Println("repository: ", reflect.ValueOf(data.Repo).String())
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
@@ -122,18 +121,11 @@ func root(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(str)
 	case "application/x-www-form-urlencoded":
 		data := getRequestFormData(w, r)
-		dumpFormData(data)
 		//handle request
 		{
 			if headerData.event == "pull_request_review_comment" {
 				switch data.Action {
 				case "created":
-					//check if comment creator has already left a comment on this PR
-					// or pull_request state is open
-					// then do nothing
-					// else then
-					// set a point event field to the collection (eventType, pr_url, userlogin, userid)
-					// edit user point field and add corresponding point to the event
 					fmt.Println("created")
 				}
 			}
@@ -151,13 +143,6 @@ func root(w http.ResponseWriter, r *http.Request) {
 					case "request_changes":
 						fmt.Println("state == request_changes")
 					}
-					//check review state :
-					// if state === approved
-					// set point to 2
-					// if state === requestchanges
-					// set point to 1
-					// if state === pending do nothing
-					// 					fmt.Println("review: ", field)
 					fmt.Println("submitted")
 				}
 			}
@@ -166,7 +151,6 @@ func root(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// 	handleSubmittedApprovedState("", sPayload{})
 	http.HandleFunc("/", root)
 	fmt.Println("start listening on port : " + cPort)
 	if err := http.ListenAndServe(":"+cPort, nil); err != nil {

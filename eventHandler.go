@@ -36,7 +36,6 @@ func hasOtherCommentRecords(session *mgo.Session, data sPayload) bool {
 		"userlogin": data.Review.User.Login, "prurl": data.PullRequest.URL}).All(&record); err != nil {
 		panic(err)
 	}
-	fmt.Println("I have or not records ...") // Debug
 	if record == nil || len(record) <= 0 {
 		return false
 	}
