@@ -21,14 +21,15 @@ type sRecord struct {
 }
 
 const (
-	cDBName           = "bw-coin"
-	cDBUsername       = "elhmn"
-	cDBPassword       = "mongobeti" //Later fetch password using os.Getenv()
-	cInitialCoins     = 5
-	cCoinsForComment  = 1
-	cCoinsForApproval = 2
-	cCoinsForChanges  = 1
-	cMaxCoinsPerPR    = 2
+	cDBName            = "bw-coin"
+	cDBUsername        = "elhmn"
+	cDBPassword        = "mongobeti" //Later fetch password using os.Getenv()
+	cInitialCoins      = 5
+	cCoinsForComment   = 1
+	cCoinsForApproval  = 2
+	cCoinsForChanges   = 1
+	cMaxCoinsPerPR     = 2
+	cMaxCoinsLostPerPR = 4
 )
 
 const (
@@ -59,6 +60,20 @@ func totalCoinsPerPR(session *mgo.Session, data sPayload) int {
 	var records []sRecord
 	if err := recordsCollection.Find(bson.M{"userlogin": data.Review.User.Login,
 		"prurl": data.PullRequest.URL}).All(&records); err != nil {
+		panic(err)
+	}
+	for _, e := range records {
+		coins += typeToCoins(e.Type)
+	}
+	return coins
+}
+
+func totalCoinsLostPerPR(session *mgo.Session, data sPayload) int {
+	recordsCollection := session.DB(cDBName).C("records")
+	coins := 0
+
+	var records []sRecord
+	if err := recordsCollection.Find(bson.M{"prurl": data.PullRequest.URL}).All(&records); err != nil {
 		panic(err)
 	}
 	for _, e := range records {
@@ -152,6 +167,17 @@ func getIncrement(coins int, gain int) int {
 	return inc
 }
 
+func getDecrement(coins int, gain int) int {
+	inc := gain
+	diff := cMaxCoinsLostPerPR - coins - inc
+	if diff < 0 {
+		if inc = cMaxCoinsLostPerPR - coins; inc < 0 {
+			inc = 0
+		}
+	}
+	return -inc
+}
+
 func handleSubmittedChangesState(state string, data sPayload) {
 	session := createDatabase()
 	usersCollection := session.DB(cDBName).C("users")
@@ -164,11 +190,18 @@ func handleSubmittedChangesState(state string, data sPayload) {
 	}
 
 	if !hasOtherRecords(session, data, eRecordChanges) {
+		//Add coins
 		coins := totalCoinsPerPR(session, data)
-		fmt.Println("totalCoinsPerPR : ", coins)
-
+		inc := getIncrement(coins, cCoinsForChanges)
 		usersCollection.Update(bson.M{"login": data.Review.User.Login},
-			bson.M{"$inc": bson.M{"coins": getIncrement(coins, cCoinsForChanges)}})
+			bson.M{"$inc": bson.M{"coins": inc}})
+
+		//Remove coins
+		coins = totalCoinsLostPerPR(session, data)
+		inc = getDecrement(coins, cCoinsForChanges)
+		usersCollection.Update(bson.M{"login": data.PullRequest.User.Login},
+			bson.M{"$inc": bson.M{"coins": inc}})
+
 		addNewRecord(session, data, eRecordChanges)
 	}
 
@@ -187,11 +220,19 @@ func handleSubmittedApprovedState(state string, data sPayload) {
 	}
 
 	if !hasOtherRecords(session, data, eRecordApproved) {
+		//Add coins
 		coins := totalCoinsPerPR(session, data)
-		fmt.Println("totalCoinsPerPR : ", coins)
-
+		inc := getIncrement(coins, cCoinsForApproval)
 		usersCollection.Update(bson.M{"login": data.Review.User.Login},
-			bson.M{"$inc": bson.M{"coins": getIncrement(coins, cCoinsForApproval)}})
+			bson.M{"$inc": bson.M{"coins": inc}})
+
+		//Remove coins
+		coins = totalCoinsLostPerPR(session, data)
+		fmt.Println("totalCoinsLostPerPR: ", coins) // Debug
+		inc = getDecrement(coins, cCoinsForApproval)
+		usersCollection.Update(bson.M{"login": data.PullRequest.User.Login},
+			bson.M{"$inc": bson.M{"coins": inc}})
+
 		addNewRecord(session, data, eRecordApproved)
 	}
 
@@ -210,11 +251,18 @@ func handleSubmittedCommentedState(state string, data sPayload) {
 	}
 
 	if !hasOtherRecords(session, data, eRecordCommented) {
+		//Add coins
 		coins := totalCoinsPerPR(session, data)
-		fmt.Println("totalCoinsPerPR : ", coins)
-
+		inc := getIncrement(coins, cCoinsForComment)
 		usersCollection.Update(bson.M{"login": data.Review.User.Login},
-			bson.M{"$inc": bson.M{"coins": getIncrement(coins, cCoinsForComment)}})
+			bson.M{"$inc": bson.M{"coins": inc}})
+
+		//Remove coins
+		coins = totalCoinsLostPerPR(session, data)
+		inc = getDecrement(coins, cCoinsForComment)
+		usersCollection.Update(bson.M{"login": data.PullRequest.User.Login},
+			bson.M{"$inc": bson.M{"coins": inc}})
+
 		addNewRecord(session, data, eRecordCommented)
 	}
 
