@@ -121,26 +121,25 @@ func root(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(str)
 	case "application/x-www-form-urlencoded":
 		data := getRequestFormData(w, r)
-		// 		dumpFormData(data) // Debug
-		// 		dumpPayload(data) // Debug
 		//handle request
 		{
 			if headerData.event == "pull_request_review" {
 				switch data.Action {
 				case "submitted":
-					fmt.Println("submitted")
+					fmt.Println("handle submitted PR event...")
 					state := data.Review.State
-					fmt.Println("state : ", state)
 					switch state {
 					case "approved":
-						fmt.Println("state == approved")
+						fmt.Println("handle commented state...")
 						handleSubmittedApprovedState(state, data)
 					case "commented":
-						fmt.Println("state == commented")
+						fmt.Println("handle approved state...")
 						handleSubmittedCommentedState(state, data)
 					case "changes_requested":
-						fmt.Println("state == changes_requested")
+						fmt.Println("handle changes_requested state...")
 						handleSubmittedChangesState(state, data)
+					default:
+						fmt.Println("can't handle ", state, " state : Unknown state")
 					}
 				}
 			}

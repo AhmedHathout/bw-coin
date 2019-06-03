@@ -116,7 +116,7 @@ func addNewRecord(session *mgo.Session, data sPayload, recordType string) {
 		data.Review.User.Login, data.PullRequest.URL}); err != nil {
 		panic(err)
 	}
-	fmt.Println("Record :", recordType, " : successfully created...")
+	fmt.Println("Record :", recordType, " : successfully created !")
 }
 
 func createDatabase() *mgo.Session {
@@ -152,7 +152,7 @@ func createUserIfDoesNotExist(usersCollection *mgo.Collection, data sPayload) {
 			cInitialCoins}); err != nil {
 			panic(err)
 		}
-		fmt.Println("User : [", data.Review.User.Login, "] successfully created...")
+		fmt.Println("User : [", data.Review.User.Login, "] successfully created !")
 	}
 }
 
@@ -204,8 +204,6 @@ func handleSubmittedChangesState(state string, data sPayload) {
 
 		addNewRecord(session, data, eRecordChanges)
 	}
-
-	dumpPayload(data) // Debug
 }
 
 func handleSubmittedApprovedState(state string, data sPayload) {
@@ -228,15 +226,12 @@ func handleSubmittedApprovedState(state string, data sPayload) {
 
 		//Remove coins
 		coins = totalCoinsLostPerPR(session, data)
-		fmt.Println("totalCoinsLostPerPR: ", coins) // Debug
 		inc = getDecrement(coins, cCoinsForApproval)
 		usersCollection.Update(bson.M{"login": data.PullRequest.User.Login},
 			bson.M{"$inc": bson.M{"coins": inc}})
 
 		addNewRecord(session, data, eRecordApproved)
 	}
-
-	dumpPayload(data) // Debug
 }
 
 func handleSubmittedCommentedState(state string, data sPayload) {
@@ -265,6 +260,4 @@ func handleSubmittedCommentedState(state string, data sPayload) {
 
 		addNewRecord(session, data, eRecordCommented)
 	}
-
-	dumpPayload(data) // Debug
 }
