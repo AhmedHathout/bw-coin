@@ -120,7 +120,7 @@ func createDatabase() *mgo.Session {
 }
 
 // Create user
-func createUserIfNotExistsYet(usersCollection *mgo.Collection, data sPayload) {
+func createUserIfDoesNotExist(usersCollection *mgo.Collection, data sPayload) {
 	// Check if user already exist
 	var userField []sUserDB
 	if err := usersCollection.Find(bson.M{"login": data.Review.User.Login}).All(&userField); err != nil {
@@ -154,7 +154,7 @@ func handleSubmittedChangesState(state string, data sPayload) {
 	session := createDatabase()
 	usersCollection := session.DB(cDBName).C("users")
 	defer session.Close()
-	createUserIfNotExistsYet(usersCollection, data)
+	createUserIfDoesNotExist(usersCollection, data)
 
 	if !hasOtherRecords(session, data, eRecordChanges) {
 		coins := totalCoinsPerPR(session, data)
@@ -172,7 +172,7 @@ func handleSubmittedApprovedState(state string, data sPayload) {
 	session := createDatabase()
 	usersCollection := session.DB(cDBName).C("users")
 	defer session.Close()
-	createUserIfNotExistsYet(usersCollection, data)
+	createUserIfDoesNotExist(usersCollection, data)
 
 	if !hasOtherRecords(session, data, eRecordApproved) {
 		coins := totalCoinsPerPR(session, data)
@@ -190,7 +190,7 @@ func handleSubmittedCommentedState(state string, data sPayload) {
 	session := createDatabase()
 	usersCollection := session.DB(cDBName).C("users")
 	defer session.Close()
-	createUserIfNotExistsYet(usersCollection, data)
+	createUserIfDoesNotExist(usersCollection, data)
 
 	if !hasOtherRecords(session, data, eRecordCommented) {
 		coins := totalCoinsPerPR(session, data)
