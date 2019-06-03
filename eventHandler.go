@@ -178,7 +178,8 @@ func getDecrement(coins int, gain int) int {
 	return -inc
 }
 
-func handleSubmittedChangesState(state string, data sPayload) {
+func handleSubmittedState(data sPayload) {
+	state := data.Review.State
 	session := createDatabase()
 	usersCollection := session.DB(cDBName).C("users")
 	defer session.Close()
@@ -189,75 +190,22 @@ func handleSubmittedChangesState(state string, data sPayload) {
 		return
 	}
 
-	if !hasOtherRecords(session, data, eRecordChanges) {
-		//Add coins
-		coins := totalCoinsPerPR(session, data)
-		inc := getIncrement(coins, cCoinsForChanges)
-		usersCollection.Update(bson.M{"login": data.Review.User.Login},
-			bson.M{"$inc": bson.M{"coins": inc}})
-
-		//Remove coins
-		coins = totalCoinsLostPerPR(session, data)
-		inc = getDecrement(coins, cCoinsForChanges)
-		usersCollection.Update(bson.M{"login": data.PullRequest.User.Login},
-			bson.M{"$inc": bson.M{"coins": inc}})
-
-		addNewRecord(session, data, eRecordChanges)
-	}
-}
-
-func handleSubmittedApprovedState(state string, data sPayload) {
-	session := createDatabase()
-	usersCollection := session.DB(cDBName).C("users")
-	defer session.Close()
-	createUserIfDoesNotExist(usersCollection, data)
-
-	if data.PullRequest.User.Login == data.Review.User.Login {
-		fmt.Println("Can't handle coins as ", data.PullRequest.User.Login, " owns this PR...")
+	if hasOtherRecords(session, data, state) {
+		fmt.Println("Can't handle", state, " state : Request already exist !")
 		return
 	}
 
-	if !hasOtherRecords(session, data, eRecordApproved) {
-		//Add coins
-		coins := totalCoinsPerPR(session, data)
-		inc := getIncrement(coins, cCoinsForApproval)
-		usersCollection.Update(bson.M{"login": data.Review.User.Login},
-			bson.M{"$inc": bson.M{"coins": inc}})
+	//Add coins
+	coins := totalCoinsPerPR(session, data)
+	inc := getIncrement(coins, typeToCoins(state))
+	usersCollection.Update(bson.M{"login": data.Review.User.Login},
+		bson.M{"$inc": bson.M{"coins": inc}})
 
-		//Remove coins
-		coins = totalCoinsLostPerPR(session, data)
-		inc = getDecrement(coins, cCoinsForApproval)
-		usersCollection.Update(bson.M{"login": data.PullRequest.User.Login},
-			bson.M{"$inc": bson.M{"coins": inc}})
+	//Remove coins
+	coins = totalCoinsLostPerPR(session, data)
+	inc = getDecrement(coins, typeToCoins(state))
+	usersCollection.Update(bson.M{"login": data.PullRequest.User.Login},
+		bson.M{"$inc": bson.M{"coins": inc}})
 
-		addNewRecord(session, data, eRecordApproved)
-	}
-}
-
-func handleSubmittedCommentedState(state string, data sPayload) {
-	session := createDatabase()
-	usersCollection := session.DB(cDBName).C("users")
-	defer session.Close()
-	createUserIfDoesNotExist(usersCollection, data)
-
-	if data.PullRequest.User.Login == data.Review.User.Login {
-		fmt.Println("Can't handle coins as ", data.PullRequest.User.Login, " owns this PR...")
-		return
-	}
-
-	if !hasOtherRecords(session, data, eRecordCommented) {
-		//Add coins
-		coins := totalCoinsPerPR(session, data)
-		inc := getIncrement(coins, cCoinsForComment)
-		usersCollection.Update(bson.M{"login": data.Review.User.Login},
-			bson.M{"$inc": bson.M{"coins": inc}})
-
-		//Remove coins
-		coins = totalCoinsLostPerPR(session, data)
-		inc = getDecrement(coins, cCoinsForComment)
-		usersCollection.Update(bson.M{"login": data.PullRequest.User.Login},
-			bson.M{"$inc": bson.M{"coins": inc}})
-
-		addNewRecord(session, data, eRecordCommented)
-	}
+	addNewRecord(session, data, state)
 }

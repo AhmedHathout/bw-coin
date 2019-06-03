@@ -129,15 +129,9 @@ func root(w http.ResponseWriter, r *http.Request) {
 					fmt.Println("handle submitted PR event...")
 					state := data.Review.State
 					switch state {
-					case "approved":
-						fmt.Println("handle commented state...")
-						handleSubmittedApprovedState(state, data)
-					case "commented":
-						fmt.Println("handle approved state...")
-						handleSubmittedCommentedState(state, data)
-					case "changes_requested":
-						fmt.Println("handle changes_requested state...")
-						handleSubmittedChangesState(state, data)
+					case eRecordApproved, eRecordChanges, eRecordCommented:
+						fmt.Println("handle ", state, " state...")
+						handleSubmittedState(data)
 					default:
 						fmt.Println("can't handle ", state, " state : Unknown state")
 					}
