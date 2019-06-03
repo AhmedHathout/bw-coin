@@ -123,12 +123,6 @@ func root(w http.ResponseWriter, r *http.Request) {
 		data := getRequestFormData(w, r)
 		//handle request
 		{
-			if headerData.event == "pull_request_review_comment" {
-				switch data.Action {
-				case "created":
-					fmt.Println("created")
-				}
-			}
 			if headerData.event == "pull_request_review" {
 				switch data.Action {
 				case "submitted":
