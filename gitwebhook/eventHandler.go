@@ -7,11 +7,12 @@ import (
 )
 
 type sUserDB struct {
-	Login string
-	URL   string
-	Type  string
-	ID    int
-	Coins int
+	Login     string
+	URL       string
+	AvatarURL string
+	Type      string
+	ID        int
+	Coins     int
 }
 
 type sRecord struct {
@@ -102,11 +103,13 @@ func dumpPayload(data sPayload) {
 	fmt.Println("User Review url:", data.Review.URL)
 	fmt.Println("User Review state:", data.Review.State)
 	fmt.Println("User login:", data.Review.User.Login)
+	fmt.Println("User avatar_url:", data.Review.User.AvatarURL)
 	fmt.Println("User PR URL:", data.PullRequest.URL)
 	fmt.Println("User id:", data.Review.User.ID)
 	fmt.Println("User url:", data.Review.User.URL)
 	fmt.Println("User PR id:", data.PullRequest.User.ID)
 	fmt.Println("User PR url:", data.PullRequest.User.Login)
+	fmt.Println("User PR avatar_url:", data.PullRequest.User.AvatarURL)
 }
 
 func addNewRecord(session *mgo.Session, data sPayload, recordType string) {
@@ -147,6 +150,7 @@ func createUserIfDoesNotExist(usersCollection *mgo.Collection, data sPayload) {
 	if userField == nil || len(userField) <= 0 {
 		if err := usersCollection.Insert(sUserDB{data.Review.User.Login,
 			data.Review.User.URL,
+			data.Review.User.AvatarURL,
 			data.Review.User.Type,
 			data.Review.User.ID,
 			cInitialCoins}); err != nil {

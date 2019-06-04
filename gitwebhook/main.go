@@ -21,10 +21,11 @@ type sHeader struct {
 }
 
 type sUser struct {
-	ID    int    `json:"id"`
-	Login string `json:"login"`
-	URL   string `json:"url"`
-	Type  string `json:"type"`
+	ID        int    `json:"id"`
+	Login     string `json:"login"`
+	URL       string `json:"url"`
+	AvatarURL string `json:"avatar_url"`
+	Type      string `json:"type"`
 }
 
 type sPullRequest struct {
