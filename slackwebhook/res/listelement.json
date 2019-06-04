@@ -1,0 +1,18 @@
+{
+	"type": "divider"
+},
+{
+	"type": "section",
+	"text": {
+		"type": "mrkdwn",
+		"text": "*[[rank]]* - <[[login_url]]|[[login]]>\n :heavy_dollar_sign: [[coins]] coins"
+	},
+	"accessory": {
+		"type": "image",
+		"image_url": "[[avatar_url]]",
+		"alt_text": "[[login]] avatar image"
+	}
+},
+{
+	"type": "divider"
+}
