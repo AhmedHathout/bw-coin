@@ -19,7 +19,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("bw-coin slack made by @elhmn"))
 }
 
-func bwcoinsHandler(w http.ResponseWriter, r *http.Request) {
+func bwcoinHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Error parsing form.", http.StatusBadRequest)
 		return
@@ -54,7 +54,7 @@ func answerInteractive(actions interface{}, url interface{}) {
 	http.Post(url.(string), "application/json", &buf)
 }
 
-func interactionsHandler(w http.ResponseWriter, r *http.Request) {
+func interactionHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Error parsing form.", http.StatusBadRequest)
 		return
@@ -86,8 +86,8 @@ func interactionsHandler(w http.ResponseWriter, r *http.Request) {
 func run() {
 	fmt.Println("Server started at port :", cPort)
 	http.HandleFunc("/", root)
-	http.HandleFunc("/bwcoins", bwcoinsHandler)
-	http.HandleFunc("/interactions", interactionsHandler)
+	http.HandleFunc("/bwcoin", bwcoinHandler)
+	http.HandleFunc("/interaction", interactionHandler)
 	if err := http.ListenAndServe(":"+cPort, nil); err != nil {
 		log.Fatal(err)
 	}
