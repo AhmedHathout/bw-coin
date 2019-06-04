@@ -1,4 +1,4 @@
-module github.com/BrandwatchLtd/bw-coin
+module github.com/BrandwatchLtd/bw-coin/gitwebhook
 
 go 1.12
 
