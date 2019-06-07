@@ -144,8 +144,16 @@ func root(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", root)
+	if gSession == nil {
+		fmt.Println("Setting up Database session...")
+		gSession = createDatabase()
+		fmt.Println("Database successfully setup !")
+	}
 	fmt.Println("start listening on port : " + cPort)
 	if err := http.ListenAndServe(":"+cPort, nil); err != nil {
 		log.Fatal(err)
+	}
+	if gSession != nil {
+		gSession.Close()
 	}
 }

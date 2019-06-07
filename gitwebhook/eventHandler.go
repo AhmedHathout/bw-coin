@@ -21,6 +21,8 @@ type sRecord struct {
 	PrURL     string
 }
 
+var gSession *mgo.Session
+
 const (
 	cDBName            = "bw-coin"
 	cDBUsername        = "elhmn"
@@ -184,9 +186,7 @@ func getDecrement(coins int, gain int) int {
 
 func handleSubmittedState(data sPayload) {
 	state := data.Review.State
-	session := createDatabase()
-	usersCollection := session.DB(cDBName).C("users")
-	defer session.Close()
+	usersCollection := gSession.DB(cDBName).C("users")
 	createUserIfDoesNotExist(usersCollection, data)
 
 	if data.PullRequest.User.Login == data.Review.User.Login {
@@ -194,22 +194,22 @@ func handleSubmittedState(data sPayload) {
 		return
 	}
 
-	if hasOtherRecords(session, data, state) {
+	if hasOtherRecords(gSession, data, state) {
 		fmt.Println("Can't handle", state, " state : Request already exist !")
 		return
 	}
 
 	//Add coins
-	coins := totalCoinsPerPR(session, data)
+	coins := totalCoinsPerPR(gSession, data)
 	inc := getIncrement(coins, typeToCoins(state))
 	usersCollection.Update(bson.M{"login": data.Review.User.Login},
 		bson.M{"$inc": bson.M{"coins": inc}})
 
 	//Remove coins
-	coins = totalCoinsLostPerPR(session, data)
+	coins = totalCoinsLostPerPR(gSession, data)
 	inc = getDecrement(coins, typeToCoins(state))
 	usersCollection.Update(bson.M{"login": data.PullRequest.User.Login},
 		bson.M{"$inc": bson.M{"coins": inc}})
 
-	addNewRecord(session, data, state)
+	addNewRecord(gSession, data, state)
 }
