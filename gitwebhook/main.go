@@ -23,7 +23,7 @@ type sHeader struct {
 type sUser struct {
 	ID        int    `json:"id"`
 	Login     string `json:"login"`
-	URL       string `json:"url"`
+	URL       string `json:"html_url"`
 	AvatarURL string `json:"avatar_url"`
 	Type      string `json:"type"`
 }
