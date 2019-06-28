@@ -3,8 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@atlaskit/avatar": "^16.0.4",
+    "@atlaskit/button": "^13.0.8",
+    "@atlaskit/drawer": "^4.1.4",
+    "@atlaskit/dynamic-table": "^13.1.0",
+    "@atlaskit/global-navigation": "^7.2.5",
+    "@atlaskit/icon": "^18.0.2",
+    "@atlaskit/layer-manager": "^7.0.6",
+    "@atlaskit/lozenge": "^9.0.1",
+    "@atlaskit/modal-dialog": "^10.0.5",
+    "@atlaskit/navigation-next": "^6.1.0",
+    "@atlaskit/page": "^11.0.0",
+    "@atlaskit/page-header": "^9.0.1",
+    "@atlaskit/progress-indicator": "^7.0.0",
+    "@fortawesome/fontawesome-svg-core": "^1.2.19",
+    "@fortawesome/free-solid-svg-icons": "^5.9.0",
+    "@fortawesome/react-fontawesome": "^0.1.4",
+    "antd": "^3.19.8",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
+    "react-router-dom": "^5.0.1",
     "react-scripts": "3.0.1"
   },
   "scripts": {
@@ -27,5 +45,15 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "eslint": "^6.0.1",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-config-prettier": "^6.0.0",
+    "eslint-plugin-import": "^2.18.0",
+    "eslint-plugin-jsx-a11y": "^6.2.1",
+    "eslint-plugin-prettier": "^3.1.0",
+    "eslint-plugin-react": "^7.14.2",
+    "prettier": "^1.18.2"
   }
 }
