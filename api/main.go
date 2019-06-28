@@ -66,7 +66,7 @@ func getUsersData() []sUserDB {
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("User handler"))
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method == "GET" {
 		data, err := json.Marshal(getUsersData())
