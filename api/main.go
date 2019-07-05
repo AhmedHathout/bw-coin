@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/http"
 )
@@ -25,12 +26,15 @@ const (
 )
 
 type sUserDB struct {
-	Login     string `json:"login"`
-	URL       string `json:"url"`
-	AvatarURL string `json:"avatar_url"`
-	Type      string `json:"type"`
-	ID        int    `json:"id"`
-	Coins     int    `json:"coins"`
+	Login     			string `json:"login"`
+	URL       			string `json:"url"`
+	AvatarURL 			string `json:"avatar_url"`
+	Type      			string `json:"type"`
+	ID        			int    `json:"id"`
+	Coins     			int    `json:"coins"`
+	PullRequestsURLs	string `json:"pull_requests_urls"`
+	CommentsURLs		string `json:"comments_urls"`
+	// I think there is no need to keep the urls of PRs and comments but just the count
 }
 
 func createDatabase() *mgo.Session {
@@ -65,11 +69,35 @@ func getUsersData() []sUserDB {
 	return userField
 }
 
+// This function can be merged with the previous one. We can
+// use (query interface) instead of (username string) or just use varargs
+func getUserByUsername(username string) []sUserDB {
+	usersCollection := gSession.DB(cDBName).C("users")
+
+	var userField []sUserDB
+	if err := usersCollection.Find(bson.M{"login": bson.RegEx{Pattern: "username"}}).All(&userField); err != nil {
+		panic(err)
+	}
+	return userField
+}
+
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method == "GET" {
-		data, err := json.Marshal(getUsersData())
+		// Get username value if it exists
+		searchParameter, ok := r.URL.Query()["search"]
+
+		var (
+			data []byte
+			err error
+		)
+
+		if !ok || len(searchParameter) < 1 {
+			data, err = json.Marshal(getUsersData())
+		} else {
+			data, err = json.Marshal(getUserByUsername(searchParameter[0]))
+		}
 		if err != nil {
 			panic(err)
 		}
